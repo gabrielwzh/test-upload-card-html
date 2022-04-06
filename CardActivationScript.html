@@ -1,0 +1,167 @@
+<html>
+<head>
+<title>DBS digibank</title>
+</head>
+<script>
+    const cardActivationURl = "https://www.google.com";
+    const DEFAULT_URL="https://www.dbs.com.sg/personal/default.page";
+
+    const dataJSON = {
+  "card_activation":{
+    "ib":cardActivationURl,
+    "posb":"QLActivateCard",
+    "dbs":"QLActivateCard",
+    "iwealth":"QLActivateCard"
+  }
+};
+    function getUrlVars() {
+        var vars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi,
+        function(m,key,value) {
+        vars[key] = value;
+        });
+        return vars;
+    }
+    function isMobile(){
+    let _mobile=""
+    if (navigator.userAgent.toLowerCase().indexOf("android") >-1) {
+        return "android"
+    }else if((navigator.userAgent.indexOf('iPhone') != -1) || (navigator.userAgent.indexOf('iPod') != -1) || (navigator.userAgent.indexOf('iPad') != -1)){
+        return "ios"
+    }else{
+        return "desktop"
+    }
+}
+    function getAppID(AppId){
+        if (typeof AppId == 'undefined'){
+            console.log("App ID not given, defaulting to DBS")
+            return "dbs"
+        }else if (AppId.toLowerCase() == "posb"){
+            return "posb"
+        }else if (AppId.toLowerCase() == "iwealth"){
+            return "iwealth"
+        }else if (AppId.toLowerCase() == "dbs"){
+            return "dbs"
+        }else {
+            console.log("App ID doesn't match, defaulting to DBS")
+            return "dbs"
+        }
+    }  
+   function launchAndroidApp(url) {
+        window.location.href = url;
+    console.log(url)
+    }
+    function launchiOSAppDBS(url,cardActivateURl) {
+        xcodeForIOSApp(url,cardActivateURl);
+        console.log(url + "---> " +  cardActivateURl);
+    }
+    function xcodeForIOSApp(url,cardActivateURl) {
+        window.setTimeout(function() {
+        window.location = url;
+        // set another timeout once the first completes
+        window.setTimeout(function() {window.location = cardActivateURl;}, 2000);
+        }, 2000); // longer, but first
+        window.location = url;
+    }
+    function getServiceID(serviceId,appid,_mtype){
+        try{
+                _serviceID = dataJSON[serviceId.toLowerCase()][appid.toLowerCase()]
+            } catch(err){
+                _serviceID= "_ib_"
+                console.log("Service ID did not match, defaulting to ib home page");
+            }
+            console.log("Device Type is " + _mtype + " , ServiceId type for " + appid + " is ["+ _serviceID + "]" )
+            return _serviceID
+        }
+
+
+    function countdown( elementName, minutes, seconds,serviceID ){
+            var element, endTime, hours, mins, msLeft, time;
+
+            function twoDigits( n ){
+                  return (n <= 9 ? "0" + n : n);
+            }
+
+            function updateTimer(){
+                  msLeft = endTime - (+new Date);
+                  //console.log(msLeft);
+                  if ( msLeft < 1 ) {
+                       // var redirect = $('#btn_ok').attr('href');
+                        window.location.href = serviceID; //redirect;
+                  } else {
+                        time = new Date( msLeft );
+                        hours = time.getUTCHours();
+                        mins = time.getUTCMinutes();
+                        element.innerHTML =  time.getUTCSeconds();
+                        setTimeout( updateTimer, time.getUTCMilliseconds() + 500 );
+                  }
+            }
+            console.log(elementName)
+            element = document.getElementById("countdown-timer");
+            console.log("element: " + element)
+            endTime = (+new Date) + 1000 * (60*minutes + seconds) + 500;
+            updateTimer();
+    }
+    function getRedirectionLoc(serviceId,appid,_mtype,_source){
+    appid=appid.toLowerCase();
+    if(_mtype=='ios'){
+        if(appid == "dbs")
+            launchiOSAppDBS('DBSDigibankSG://'+'?serviceID='+serviceId+''+'&source='+_source,cardActivationURl);
+        else if(appid == "posb")
+            launchiOSAppDBS('DBSDigibankSG://'+'?serviceID='+serviceId+''+'&source='+_source,cardActivationURl);
+        else if(appid == "iwealth")
+            launchiOSAppDBS('DBSDigibankSG://'+'?serviceID='+serviceId+''+'&source='+_source,cardActivationURl);
+        else
+            launchiOSAppDBS('DBSDigibankSG://'+'?serviceID='+serviceId+''+'&source='+_source,cardActivationURl);
+
+        } else if(_mtype=='android'){
+            var dbsURL = 'intent://com.dbs.sg.dbsmbanking/promoid/?serviceID='+serviceId+'&source='+_source+'#Intent;scheme=dbsmbanking;package=com.dbs.sg.dbsmbanking;S.browser_fallback_url='+cardActivationURl+';end'
+            var posbURL = 'intent://com.dbs.sg.posbmbanking/promoid/?serviceID='+serviceId+'&source='+_source+'#Intent;scheme=posbmbanking;package=com.dbs.sg.posbmbanking;S.browser_fallback_url='+cardActivationURl+';end'
+            var iwealthURL = 'intent://com.dbs.sg.dbsiwealth/promoid/?serviceID='+serviceId+'&source='+_source+'#Intent;scheme=DBSiWealthSG;package=com.dbs.sg.dbsiwealth;S.browser_fallback_url='+cardActivationURl+';end'
+            if(appid == "dbs")
+                launchAndroidApp(dbsURL);
+            else if(appid == "posb")
+                launchAndroidApp(posbURL);
+            else if(appid == "iwealth")
+                launchAndroidApp(iwealthURL);
+            else
+                launchAndroidApp(cardActivationURl);
+            }
+
+    }
+
+    function check(){
+        var AppId = getUrlVars()["APP_ID"];
+            var serviceId = getUrlVars()["SERVICE_ID"];
+            var Source = getUrlVars()["SOURCE"];
+        var _isMobile = isMobile().toLowerCase()
+        if ((_isMobile == "android") || (_isMobile == "ios")) {
+            //mobile
+            _appId= getAppID(AppId)
+            _serviceid= getServiceID(serviceId,_appId,_isMobile)
+            getRedirectionLoc(_serviceid,_appId,_isMobile,Source);
+        } else {
+            //default to desktop
+            try{
+                _serviceId=dataJSON[serviceId.toLowerCase()]["ib"]
+            }catch(err){
+                _serviceId = DEFAULT_URL
+            }
+            //Display Counter
+            document.getElementById("contentblock").innerHTML=
+            '<div "style="margin: auto; text-align:center;"><p>You will be redirected in</p><div id="countdown-timer" style="color:#F00; font-size:20px;">5</div> seconds</div>Click <a href='+_serviceId +'>Here</a> to Proceed.'
+            countdown("countdown-timer",0,10,_serviceId)
+        }
+    }
+
+</script>
+<body>
+    <div id="contentblock"/>
+
+
+    <script>
+        window.onload = check;
+    </script>
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v652eace1692a40cfa3763df669d7439c1639079717194" integrity="sha512-Gi7xpJR8tSkrpF7aordPZQlW2DLtzUlZcumS8dMQjwDHEnw9I7ZLyiOj/6tZStRBGtGgN6ceN6cMH8z7etPGlw==" data-cf-beacon='{"rayId":"6f0e2884281787e1","token":"99ae44f82b6947e29f504bb0e8155562","version":"2021.12.0","si":100}' crossorigin="anonymous"></script>
+</body>
+    </html>
